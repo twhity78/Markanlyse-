@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Platzhalter: Foto Unterwasserlaufband">
+  <defs>
+    <linearGradient id="w" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a7ca5"/>
+      <stop offset="1" stop-color="#2a5d80"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#w)"/>
+  <g stroke="#cfe6f2" stroke-width="6" fill="none" opacity="0.5">
+    <path d="M0 620 Q150 590 300 620 T600 620 T900 620 T1200 620"/>
+    <path d="M0 700 Q150 670 300 700 T600 700 T900 700 T1200 700"/>
+    <path d="M0 780 Q150 750 300 780 T600 780 T900 780 T1200 780"/>
+  </g>
+  <g fill="#f5efe4" opacity="0.85" transform="translate(510,300)">
+    <ellipse cx="60" cy="80" rx="34" ry="28"/>
+    <ellipse cx="18" cy="38" rx="13" ry="17" transform="rotate(-20 18 38)"/>
+    <ellipse cx="48" cy="22" rx="13" ry="17" transform="rotate(-7 48 22)"/>
+    <ellipse cx="78" cy="22" rx="13" ry="17" transform="rotate(7 78 22)"/>
+    <ellipse cx="106" cy="38" rx="13" ry="17" transform="rotate(20 106 38)"/>
+  </g>
+  <text x="600" y="500" text-anchor="middle" font-family="system-ui, sans-serif" font-size="36" fill="#f5efe4" opacity="0.95">Platzhalter – Foto Unterwasserlaufband</text>
+</svg>

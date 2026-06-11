@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Platzhalter: Hero-Foto">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e4d3b"/>
+      <stop offset="1" stop-color="#2e6b52"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g)"/>
+  <!-- stilisierte Tannen -->
+  <g fill="#173d2f" opacity="0.7">
+    <path d="M200 900 L320 600 L440 900 Z"/>
+    <path d="M380 900 L540 480 L700 900 Z"/>
+    <path d="M900 900 L1060 520 L1220 900 Z"/>
+    <path d="M1180 900 L1320 640 L1460 900 Z"/>
+  </g>
+  <!-- Pfotenabdruck -->
+  <g fill="#f5efe4" opacity="0.85" transform="translate(740,330) scale(1.4)">
+    <ellipse cx="60" cy="80" rx="34" ry="28"/>
+    <ellipse cx="18" cy="38" rx="13" ry="17" transform="rotate(-20 18 38)"/>
+    <ellipse cx="48" cy="22" rx="13" ry="17" transform="rotate(-7 48 22)"/>
+    <ellipse cx="78" cy="22" rx="13" ry="17" transform="rotate(7 78 22)"/>
+    <ellipse cx="106" cy="38" rx="13" ry="17" transform="rotate(20 106 38)"/>
+  </g>
+  <text x="800" y="560" text-anchor="middle" font-family="system-ui, sans-serif" font-size="40" fill="#f5efe4" opacity="0.9">Platzhalter – Hero-Foto einfügen</text>
+  <text x="800" y="610" text-anchor="middle" font-family="system-ui, sans-serif" font-size="26" fill="#f5efe4" opacity="0.7">z. B. Melanie bei der Behandlung eines Hundes</text>
+</svg>
