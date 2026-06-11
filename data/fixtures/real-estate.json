@@ -1,0 +1,34 @@
+[
+  {
+    "region": "Deutschland",
+    "pricePerSqm": 3280,
+    "changeYoY": 3.2,
+    "change5y": 28.5,
+    "year": 2025,
+    "notes": "Bundesweiter Durchschnittswert Bestandswohnungen (Destatis-Schätzung)"
+  },
+  {
+    "region": "Berlin",
+    "pricePerSqm": 5450,
+    "changeYoY": 4.8,
+    "change5y": 42.1,
+    "year": 2025,
+    "notes": "Durchschnitt inkl. Randlagen; Innenstadt bis 8.500 €/m²"
+  },
+  {
+    "region": "München",
+    "pricePerSqm": 9200,
+    "changeYoY": 2.1,
+    "change5y": 31.4,
+    "year": 2025,
+    "notes": "Höchstes Preisniveau in Deutschland; leichte Normalisierung nach 2023"
+  },
+  {
+    "region": "Hamburg",
+    "pricePerSqm": 6100,
+    "changeYoY": 3.5,
+    "change5y": 35.8,
+    "year": 2025,
+    "notes": "Stabile Nachfrage; Elbe-Randlagen mit überdurchschnittlichem Wachstum"
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "sector": "Software & Cloud",
+  "updatedAt": "2026-06-10",
+  "sectorStats": {
+    "globalMarketSizeUsdBn": 920,
+    "yoyGrowthPct": 14.2,
+    "topTrends": ["KI-Integration / Copilot-Funktionen", "Cloud-Migration (SaaS/PaaS)", "Cybersecurity-Konsolidierung"]
+  },
+  "competitors": [
+    {
+      "name": "SAP",
+      "ticker": "sap.de",
+      "notes": "Marktführer für Unternehmenssoftware in Europa; starkes Cloud-Wachstum (S/4HANA, BTP)."
+    },
+    {
+      "name": "Microsoft",
+      "ticker": "msft.us",
+      "notes": "Dominiert mit Azure und M365; KI-Integration (Copilot) als Wachstumstreiber."
+    },
+    {
+      "name": "Salesforce",
+      "ticker": "crm.us",
+      "notes": "Führend im CRM-Markt; Fokus auf Daten- und KI-Plattform (Data Cloud, Agentforce)."
+    }
+  ]
+}

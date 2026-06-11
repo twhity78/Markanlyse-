@@ -1,0 +1,36 @@
+{
+  "stocks": [
+    { "symbol": "^spx", "name": "S&P 500", "currency": "USD" },
+    { "symbol": "^dax", "name": "DAX", "currency": "EUR" },
+    { "symbol": "aapl.us", "name": "Apple", "currency": "USD" },
+    { "symbol": "sap.de", "name": "SAP", "currency": "EUR" }
+  ],
+  "crypto": [
+    { "id": "bitcoin", "name": "Bitcoin", "vsCurrency": "eur" },
+    { "id": "ethereum", "name": "Ethereum", "vsCurrency": "eur" },
+    { "id": "solana", "name": "Solana", "vsCurrency": "eur" }
+  ],
+  "realEstate": {
+    "regions": ["Deutschland", "Berlin", "München"]
+  },
+  "industry": {
+    "sector": "Software & Cloud",
+    "competitors": [
+      {
+        "name": "SAP",
+        "ticker": "sap.de",
+        "notes": "Marktführer für Unternehmenssoftware in Europa; starkes Cloud-Wachstum (S/4HANA, BTP)."
+      },
+      {
+        "name": "Microsoft",
+        "ticker": "msft.us",
+        "notes": "Dominiert mit Azure und M365; KI-Integration (Copilot) als Wachstumstreiber."
+      },
+      {
+        "name": "Salesforce",
+        "ticker": "crm.us",
+        "notes": "Führend im CRM-Markt; Fokus auf Daten- und KI-Plattform (Data Cloud, Agentforce)."
+      }
+    ]
+  }
+}
