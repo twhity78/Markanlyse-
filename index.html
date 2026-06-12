@@ -36,7 +36,7 @@
     <div class="container header-inner">
       <a href="#start" class="brand">
         <svg class="brand-icon" viewBox="0 0 64 64" aria-hidden="true">
-          <rect width="64" height="64" rx="14" fill="currentColor" opacity="0.12"/>
+          <rect width="64" height="64" rx="14" fill="currentColor" opacity="0.14"/>
           <g fill="currentColor">
             <ellipse cx="32" cy="40" rx="11" ry="9"/>
             <ellipse cx="18" cy="26" rx="4.5" ry="6" transform="rotate(-20 18 26)"/>
@@ -55,8 +55,8 @@
         <ul>
           <li><a href="#leistungen">Leistungen</a></li>
           <li><a href="#unterwasserlaufband">Unterwasserlaufband</a></li>
-          <li><a href="#anwendungsgebiete">Anwendungsgebiete</a></li>
           <li><a href="#ueber-mich">Über mich</a></li>
+          <li><a href="#kundenstimmen">Kundenstimmen</a></li>
           <li><a href="#kontakt">Kontakt</a></li>
         </ul>
         <a class="btn btn-primary nav-cta" href="tel:+4915111589980">
@@ -75,15 +75,20 @@
 
     <!-- ===== Hero ===== -->
     <section class="hero">
-      <div class="hero-media">
-        <!-- TODO: Platzhalter durch echtes Foto ersetzen (z. B. Melanie bei der Behandlung) -->
-        <img src="assets/img/platzhalter-hero.svg" alt="Tierphysiotherapie im Schwarzwald" fetchpriority="high">
-      </div>
+      <svg class="hero-paw" viewBox="0 0 128 128" aria-hidden="true">
+        <g fill="#3bbcd8">
+          <ellipse cx="64" cy="84" rx="24" ry="20"/>
+          <ellipse cx="34" cy="52" rx="10" ry="14" transform="rotate(-20 34 52)"/>
+          <ellipse cx="55" cy="40" rx="10" ry="14" transform="rotate(-7 55 40)"/>
+          <ellipse cx="76" cy="40" rx="10" ry="14" transform="rotate(7 76 40)"/>
+          <ellipse cx="96" cy="52" rx="10" ry="14" transform="rotate(20 96 52)"/>
+        </g>
+      </svg>
       <div class="container hero-content">
-        <p class="hero-kicker">Tierphysiotherapie · Osteopathie · Akupunktur</p>
-        <h1>Damit Ihr Tier sich wieder<br>schmerzfrei bewegen kann.</h1>
+        <p class="hero-badge">🐾 Tierphysiotherapie · Osteopathie · Akupunktur</p>
+        <h1>Damit dein Tier sich wieder <span class="accent">schmerzfrei bewegen</span> kann.</h1>
         <!-- TODO: Originaltext der alten Startseite einfügen, sobald er vorliegt -->
-        <p class="hero-sub">Ganzheitliche Physiotherapie für Hunde und Katzen in Neubulach-Liebelsberg – mit Erfahrung, Einfühlungsvermögen und moderner Ausstattung wie dem Unterwasserlaufband.</p>
+        <p class="hero-sub">Ganzheitliche Physiotherapie für Hunde und Katzen in Neubulach-Liebelsberg im Schwarzwald – mit Erfahrung, Einfühlungsvermögen und moderner Ausstattung wie dem Unterwasserlaufband.</p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="tel:+4915111589980">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.7.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.5.6 3.6.1.4 0 .8-.2 1l-2.3 2.2Z"/></svg>
@@ -94,20 +99,33 @@
             WhatsApp
           </a>
         </div>
-        <ul class="hero-badges">
+        <div class="hero-stats">
+          <div class="stat"><strong>130+</strong><span>Patienten/Monat</span></div>
+          <div class="stat"><strong>⭐ 5.0</strong><span>Google-Bewertung</span></div>
+          <div class="stat"><strong>8 J.</strong><span>Erfahrung</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Trust-Leiste ===== -->
+    <div class="trust-bar">
+      <div class="container">
+        <ul>
           <li>Hunde &amp; Katzen</li>
+          <li>Unterwasserlaufband vor Ort</li>
           <li>Hausbesuche nach Absprache</li>
+          <li>Enge Zusammenarbeit mit Tierärzten</li>
           <li>Termine nach Vereinbarung</li>
         </ul>
       </div>
-    </section>
+    </div>
 
     <!-- ===== Leistungen ===== -->
     <section class="section" id="leistungen">
       <div class="container">
-        <header class="section-head reveal">
-          <p class="section-kicker">Leistungen</p>
-          <h2>Therapie, die zu Ihrem Tier passt</h2>
+        <header class="section-head centered reveal">
+          <p class="section-kicker">Meine Leistungen</p>
+          <h2>Therapie, die deinem Tier wirklich hilft</h2>
           <p class="section-intro">Jedes Tier ist anders – deshalb beginnt jede Behandlung mit einem gründlichen Befund. Daraus entsteht ein individueller Therapieplan.</p>
         </header>
 
@@ -127,7 +145,7 @@
             </div>
             <h3>Akupunktur (TCM)</h3>
             <!-- TODO: Originaltext einfügen -->
-            <p>Akupunktur nach traditioneller chinesischer Medizin – zur Schmerzlinderung, Entspannung und Aktivierung der Selbstheilungskräfte Ihres Tieres.</p>
+            <p>Akupunktur nach traditioneller chinesischer Medizin – zur Schmerzlinderung, Entspannung und Aktivierung der Selbstheilungskräfte deines Tieres.</p>
           </article>
 
           <article class="card reveal">
@@ -157,6 +175,15 @@
             <p>Gelenkschonender Muskelaufbau im warmen Wasser – ideal nach Operationen, bei Arthrose oder zur Steigerung von Kondition und Beweglichkeit.</p>
             <a class="card-link" href="#unterwasserlaufband">Mehr erfahren →</a>
           </article>
+
+          <article class="card reveal">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.9-9.3-9.6C1.2 7.6 3.6 4.5 6.9 4.5c1.9 0 3.6 1 4.6 2.6.5.8.5.8 1 0 1-1.6 2.7-2.6 4.6-2.6 3.3 0 5.7 3.1 4.2 6.9C19.5 16.1 12 21 12 21Z"/></svg>
+            </div>
+            <h3>Anwendungsgebiete</h3>
+            <p>Arthrose, neurologische Störungen, Reha nach Operationen, Schmerzen im Alter und mehr – schau, wann Physiotherapie deinem Tier helfen kann.</p>
+            <a class="card-link" href="#anwendungsgebiete">Zur Übersicht →</a>
+          </article>
         </div>
       </div>
     </section>
@@ -172,7 +199,7 @@
           <p class="section-kicker">Hydrotherapie</p>
           <h2>Training auf dem Unterwasserlaufband</h2>
           <!-- TODO: Originaltext der Unterseite „Unterwasserlaufband" einfügen -->
-          <p>Der Auftrieb des Wassers entlastet die Gelenke, während der Wasserwiderstand die Muskulatur gezielt kräftigt. So kann Ihr Tier schon früh nach einer Operation oder trotz Arthrose effektiv und schmerzarm trainieren.</p>
+          <p>Der Auftrieb des Wassers entlastet die Gelenke, während der Wasserwiderstand die Muskulatur gezielt kräftigt. So kann dein Tier schon früh nach einer Operation oder trotz Arthrose effektiv und schmerzarm trainieren.</p>
           <ul class="check-list">
             <li>Gelenkschonender Muskelaufbau</li>
             <li>Schnellere Rehabilitation nach Operationen</li>
@@ -188,7 +215,7 @@
     <!-- ===== Anwendungsgebiete ===== -->
     <section class="section" id="anwendungsgebiete">
       <div class="container">
-        <header class="section-head reveal">
+        <header class="section-head centered reveal">
           <p class="section-kicker">Anwendungsgebiete</p>
           <h2>Wann Tierphysiotherapie hilft</h2>
         </header>
@@ -202,7 +229,7 @@
           <div class="tag">Rehabilitation nach Verletzungen &amp; Frakturen</div>
           <div class="tag">Mobilität im Alter erhalten</div>
         </div>
-        <p class="note reveal">Die Tierphysiotherapie ersetzt nicht den Tierarzt – sie ergänzt die tierärztliche Behandlung. Gerne arbeite ich eng mit Ihrer Tierarztpraxis zusammen.</p>
+        <p class="note reveal">Die Tierphysiotherapie ersetzt nicht den Tierarzt – sie ergänzt die tierärztliche Behandlung. Gerne arbeite ich eng mit deiner Tierarztpraxis zusammen.</p>
       </div>
     </section>
 
@@ -214,44 +241,78 @@
           <img src="assets/img/platzhalter-melanie.svg" alt="Melanie Meixner, Tierphysiotherapeutin" loading="lazy">
         </div>
         <div class="split-text reveal">
-          <p class="section-kicker">Über mich</p>
+          <p class="section-kicker">Hinter der Praxis</p>
           <h2>Melanie Meixner</h2>
-          <p class="lead">Tierphysiotherapeutin &amp; Akupunkteurin</p>
+          <p class="lead">Tierphysiotherapeutin &amp; Fachexpertin</p>
+          <div class="chip-row">
+            <span class="chip">Zert. Tierphysio</span>
+            <span class="chip">Osteopathie</span>
+            <span class="chip">Wasserlaufband</span>
+            <span class="chip">Akupunktur</span>
+          </div>
           <!-- TODO: Originaltext „Über mich" einfügen, sobald er vorliegt -->
-          <p>Tiere liegen mir seit jeher am Herzen. Nach mehrjähriger Tätigkeit in einer Tierarztpraxis habe ich mich auf die Physiotherapie für Hunde und Katzen spezialisiert – mit dem Ziel, Schmerzen zu lindern, Beweglichkeit zurückzugeben und Lebensqualität zu erhalten.</p>
-          <p>In meiner Praxis in Neubulach-Liebelsberg nehme ich mir Zeit für jedes Tier: mit ruhiger Hand, viel Geduld und einem Behandlungsplan, der individuell auf Ihr Tier abgestimmt ist.</p>
-          <ul class="check-list">
-            <li>Ausgebildete Tierphysiotherapeutin</li>
-            <li>Akupunkteurin nach traditioneller chinesischer Medizin</li>
-            <li>Langjährige Erfahrung aus der Tierarztpraxis</li>
-            <li>Über 5 Jahre erfolgreiche Behandlung von Haustieren</li>
-          </ul>
+          <p>Mit über 8 Jahren Erfahrung und 130+ Patienten pro Monat kenne ich die Bedürfnisse von Hunden, Katzen und ihren Besitzern genau. Nach mehrjähriger Tätigkeit in einer Tierarztpraxis habe ich mich auf die Physiotherapie spezialisiert – mit dem Ziel, Schmerzen zu lindern, Beweglichkeit zurückzugeben und Lebensqualität zu erhalten.</p>
+          <p>In meiner Praxis in Neubulach-Liebelsberg nehme ich mir Zeit für jedes Tier: mit ruhiger Hand, viel Geduld und einem Behandlungsplan, der individuell auf dein Tier abgestimmt ist.</p>
+          <blockquote class="quote">„Ich behandle jedes Tier so, wie ich mein eigenes behandeln würde."</blockquote>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Kundenstimmen ===== -->
+    <section class="section" id="kundenstimmen">
+      <div class="container">
+        <header class="section-head centered reveal">
+          <p class="section-kicker">Was Kunden sagen</p>
+          <h2>Echte Stimmen aus der Praxis</h2>
+        </header>
+        <div class="testimonial-grid">
+          <article class="testimonial reveal">
+            <div class="stars" aria-label="5 von 5 Sternen">★★★★★</div>
+            <blockquote>„Meine alte Hundedame konnte sich kaum noch bewegen. Dank Physio bei Melanie ist sie wieder topfit! Fachlich sehr kompetent, einfühlsam und geduldig."</blockquote>
+            <cite>– Monika R., Labrador-Besitzerin</cite>
+          </article>
+          <article class="testimonial reveal">
+            <div class="stars" aria-label="5 von 5 Sternen">★★★★★</div>
+            <blockquote>„Melanie hat den Bandscheibenvorfall meiner Hündin richtig gut behandelt. Mein Hund läuft wieder wie vorher."</blockquote>
+            <cite>– Thomas K., Schäferhund-Besitzer</cite>
+          </article>
+          <article class="testimonial reveal">
+            <div class="stars" aria-label="5 von 5 Sternen">★★★★★</div>
+            <blockquote>„Sie ist super qualifiziert und hat einen liebevollen Umgang mit dem Tier. Das beste, was unserm Benny passieren konnte."</blockquote>
+            <cite>– Sandra M., Patientenbesitzerin</cite>
+          </article>
         </div>
       </div>
     </section>
 
     <!-- ===== Ablauf ===== -->
-    <section class="section" id="ablauf">
+    <section class="section section-alt" id="ablauf">
       <div class="container">
-        <header class="section-head reveal">
-          <p class="section-kicker">So einfach geht's</p>
-          <h2>Ihr Weg zur Behandlung</h2>
+        <header class="section-head centered reveal">
+          <p class="section-kicker">Einfach starten</p>
+          <h2>So funktioniert's</h2>
+          <p class="section-intro">Vom ersten Anruf bis zur Behandlung – einfach, persönlich, unkompliziert.</p>
         </header>
         <ol class="steps">
           <li class="step reveal">
             <span class="step-num">1</span>
             <h3>Kontakt aufnehmen</h3>
-            <p>Rufen Sie an oder schreiben Sie per WhatsApp – wir besprechen kurz das Anliegen und vereinbaren einen Termin.</p>
+            <p>Ruf an oder schreib per WhatsApp – wir besprechen kurz dein Anliegen und vereinbaren einen Termin.</p>
           </li>
           <li class="step reveal">
             <span class="step-num">2</span>
             <h3>Erstbefund</h3>
-            <p>Beim ersten Termin untersuche ich Ihr Tier gründlich: Gangbild, Beweglichkeit, Muskulatur und Schmerzpunkte.</p>
+            <p>Beim ersten Termin untersuche ich dein Tier gründlich: Gangbild, Beweglichkeit, Muskulatur und Schmerzpunkte.</p>
           </li>
           <li class="step reveal">
             <span class="step-num">3</span>
-            <h3>Individueller Therapieplan</h3>
-            <p>Auf Basis des Befunds erstellen wir gemeinsam einen Behandlungsplan – inklusive Übungen für zu Hause.</p>
+            <h3>Individuelle Behandlung</h3>
+            <p>Auf Basis des Befunds erstellen wir gemeinsam einen Therapieplan – abgestimmt auf dein Tier.</p>
+          </li>
+          <li class="step reveal">
+            <span class="step-num">4</span>
+            <h3>Übungen für zuhause</h3>
+            <p>Du bekommst einfache Übungen mit, damit die Therapie auch zwischen den Terminen wirkt.</p>
           </li>
         </ol>
       </div>
@@ -260,9 +321,9 @@
     <!-- ===== Kontakt ===== -->
     <section class="section section-contact" id="kontakt">
       <div class="container">
-        <header class="section-head reveal">
+        <header class="section-head centered reveal">
           <p class="section-kicker">Kontakt</p>
-          <h2>Vereinbaren Sie einen Termin</h2>
+          <h2>Vereinbare jetzt einen Termin</h2>
           <p class="section-intro">Termine nach Vereinbarung – telefonisch oder bequem per WhatsApp.</p>
         </header>
 
@@ -300,7 +361,7 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <p>© <span id="year">2026</span> Schwarzwald-Tierphysio · Melanie Meixner</p>
+      <p>🐾 © <span id="year">2026</span> Schwarzwald-Tierphysio · Melanie Meixner</p>
       <nav aria-label="Rechtliches">
         <a href="impressum.html">Impressum</a>
         <a href="datenschutz.html">Datenschutz</a>

@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" role="img" aria-label="Platzhalter: Portrait Melanie Meixner">
-  <rect width="900" height="1100" fill="#e8e0d1"/>
-  <g fill="#bfb29a">
+  <rect width="900" height="1100" fill="#e2eef4"/>
+  <g fill="#9fc9d9">
     <circle cx="450" cy="400" r="160"/>
     <path d="M170 1100 C170 800 730 800 730 1100 Z"/>
   </g>
-  <text x="450" y="940" text-anchor="middle" font-family="system-ui, sans-serif" font-size="34" fill="#5c5343">Platzhalter – Portrait</text>
-  <text x="450" y="985" text-anchor="middle" font-family="system-ui, sans-serif" font-size="26" fill="#5c5343" opacity="0.8">Foto von Melanie einfügen</text>
+  <text x="450" y="940" text-anchor="middle" font-family="system-ui, sans-serif" font-size="34" fill="#183040">Platzhalter – Portrait</text>
+  <text x="450" y="985" text-anchor="middle" font-family="system-ui, sans-serif" font-size="26" fill="#183040" opacity="0.8">Foto von Melanie einfügen</text>
 </svg>
