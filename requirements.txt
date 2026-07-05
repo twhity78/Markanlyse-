@@ -1,3 +1,8 @@
 reportlab>=4.0
 pillow>=10.0
+streamlit>=1.30
 pytest>=7.0
+
+# Optional für OCR per Tesseract (zusätzlich Systempaket 'tesseract-ocr'):
+# pytesseract>=0.3
+# Claude-Vision-OCR benötigt nur die Umgebungsvariable ANTHROPIC_API_KEY.

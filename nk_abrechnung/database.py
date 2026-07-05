@@ -134,6 +134,44 @@ def seed(con: sqlite3.Connection) -> None:
     con.commit()
 
 
+# ---------------------------------------------------------------------------
+# Zugriffsfunktionen (für die Streamlit-App)
+# ---------------------------------------------------------------------------
+
+
+def list_meters(con: sqlite3.Connection) -> list[dict]:
+    cur = con.execute(
+        "SELECT id, serial_no, type, location, unit, description FROM meters ORDER BY id")
+    cols = [c[0] for c in cur.description]
+    return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
+def add_reading(con: sqlite3.Connection, meter_id: int, datum: str,
+                value: float, photo_path: str | None = None) -> None:
+    """Fügt eine Ablesung ein oder aktualisiert sie (pro Zähler+Datum eindeutig)."""
+    con.execute(
+        "INSERT INTO meter_readings(meter_id, date, value, photo_path)"
+        " VALUES (?,?,?,?)"
+        " ON CONFLICT(meter_id, date) DO UPDATE SET value=excluded.value,"
+        " photo_path=COALESCE(excluded.photo_path, meter_readings.photo_path)",
+        (meter_id, datum, value, photo_path),
+    )
+    con.commit()
+
+
+def list_readings(con: sqlite3.Connection, meter_id: int | None = None) -> list[dict]:
+    sql = ("SELECT r.id, m.serial_no, m.description, m.unit, r.date, r.value, "
+           "r.photo_path FROM meter_readings r JOIN meters m ON m.id = r.meter_id")
+    params: tuple = ()
+    if meter_id is not None:
+        sql += " WHERE r.meter_id = ?"
+        params = (meter_id,)
+    sql += " ORDER BY r.date DESC, m.serial_no"
+    cur = con.execute(sql, params)
+    cols = [c[0] for c in cur.description]
+    return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
 def build(db_path: str | Path, overwrite: bool = False) -> Path:
     """Erzeugt eine einsatzbereite Datenbank und gibt den Pfad zurück."""
     path = Path(db_path)

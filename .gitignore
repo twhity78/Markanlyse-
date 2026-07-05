@@ -7,3 +7,4 @@ venv/
 # erzeugte Ausgaben
 output/*.pdf
 output/*.db
+output/photos/

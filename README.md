@@ -34,12 +34,45 @@ pip install -r requirements.txt
 
 ## Nutzung
 
+### Kommandozeile
+
 ```bash
 python main.py rechnen   # Ergebnisse in der Konsole
 python main.py pdf       # alle PDFs nach ./output erzeugen
 python main.py db        # SQLite-Datenbank aufbauen und seeden
 python main.py alles     # DB + PDFs + Konsolenausgabe
 ```
+
+### Streamlit-Oberfläche (Foto-Ablesung)
+
+```bash
+streamlit run streamlit_app.py
+```
+
+Die App bietet fünf Bereiche:
+
+- **📷 Zähler ablesen** – Zähler wählen, Foto hochladen oder mit der Kamera
+  aufnehmen; der Zählerstand wird per OCR vorgeschlagen und bestätigt. Das
+  Foto wird als Nachweis unter `output/photos/` gespeichert, die Ablesung in
+  der Datenbank. Eine Plausibilitätswarnung erscheint, wenn der neue Wert
+  kleiner als die letzte Ablesung ist.
+- **📋 Ablesungen** – Tabelle aller Ablesungen inkl. Foto-Vorschau.
+- **🧾 Abrechnung** – berechnete Ergebnisse je Partei mit PDF-Download.
+- **📊 Verbrauch & COP** – Zählerstände und COP-Plausibilitätsprüfung.
+- **ℹ️ Status** – Stammdaten, Kostenparameter, aktive OCR-Backends.
+
+#### OCR-Backends (optional)
+
+Die Ablesung funktioniert immer auch manuell. Für die automatische Erkennung
+wird das beste verfügbare Backend genutzt:
+
+| Backend | Aktivierung |
+|---|---|
+| **Claude Vision** | Umgebungsvariable `ANTHROPIC_API_KEY` setzen (empfohlen für Zählerfotos) |
+| **Tesseract** | Systempaket `tesseract-ocr` + `pip install pytesseract` |
+
+Ist keines vorhanden, wird der Wert manuell eingegeben – das Foto dient
+dann als Nachweis.
 
 Erzeugte Dateien in `output/`:
 
@@ -56,11 +89,16 @@ Erzeugte Dateien in `output/`:
 nk_abrechnung/
   config.py     Stammdaten, Zählerstände, Kostenparameter (einzige Datenquelle)
   engine.py     Berechnungslogik (Heizschlüssel, COP, Perioden-Abrechnung)
-  database.py   SQLite-Schema und Seeding
+  database.py   SQLite-Schema, Seeding und Ablese-Zugriffsfunktionen
+  ocr.py        Zählerstand-OCR (Claude Vision / Tesseract, mit Fallback)
   pdf.py        PDF-Erzeugung (ReportLab)
 main.py         Kommandozeilen-Einstieg
+streamlit_app.py  Web-Oberfläche für Foto-Ablesung und Abrechnung
 tests/          Regressionstests gegen die dokumentierten Ergebnisse
 ```
+
+Erzeugte Ordner/Dateien (nicht versioniert): `output/nk_teinacher.db`,
+`output/photos/`, `output/*.pdf`.
 
 ## Berechnungsmethodik
 
