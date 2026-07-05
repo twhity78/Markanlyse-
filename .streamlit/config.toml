@@ -1,0 +1,17 @@
+# Streamlit-Konfiguration für lokalen Betrieb und Streamlit Community Cloud.
+# Der Netzwerk-Adressbereich wird beim lokalen Start über start_mobile.sh
+# gesetzt; in der Cloud verwaltet Streamlit die Serveradresse selbst.
+
+[server]
+headless = true
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
+primaryColor = "#1f3a5f"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#eef2f7"
+textColor = "#1a1a1a"

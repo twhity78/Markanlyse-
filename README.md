@@ -65,6 +65,52 @@ Die App bietet fünf Bereiche:
 - **📊 Verbrauch & COP** – Zählerstände und COP-Plausibilitätsprüfung.
 - **ℹ️ Status** – Stammdaten, Kostenparameter, aktive OCR-Backends.
 
+### 📱 App auf dem Handy nutzen
+
+Es gibt zwei Wege. Beide sind vorbereitet.
+
+#### Variante A – Lokales WLAN (privat, empfohlen für sensible Daten)
+
+Handy und Rechner müssen im selben WLAN sein. Auf dem Rechner:
+
+```bash
+./start_mobile.sh
+```
+
+Das Skript zeigt eine Adresse wie `http://192.168.1.23:8501` an – diese auf
+dem Handy im Browser öffnen. Die Daten bleiben komplett auf dem eigenen
+Rechner; der Rechner muss dabei laufen.
+
+#### Variante B – Streamlit Community Cloud (überall erreichbar, kostenlos)
+
+Feste Web-Adresse, die von jedem Handy aus funktioniert:
+
+1. Auf [share.streamlit.io](https://share.streamlit.io) mit dem GitHub-Konto
+   anmelden und **"New app"** wählen.
+2. Repository `twhity78/Markanlyse-`, Branch `main`, Hauptdatei
+   `streamlit_app.py` auswählen.
+3. Unter **Advanced settings → Secrets** ein Passwort hinterlegen
+   (Inhalt aus `.streamlit/secrets.toml.example`):
+   ```toml
+   app_password = "dein-sicheres-passwort"
+   ```
+4. **Deploy** klicken. Nach ~1 Minute ist die App unter einer
+   `…streamlit.app`-Adresse erreichbar – diese als Lesezeichen aufs Handy legen.
+
+> **Wichtig bei Variante B:**
+> - Der **Passwortschutz** (Schritt 3) ist bei öffentlichem Hosting dringend
+>   empfohlen, da die App Mieter- und Abrechnungsdaten enthält.
+> - Der Speicher der Cloud ist **flüchtig**: dort erfasste Ablesungen und
+>   Belege gehen bei einem Neustart der App verloren. Die berechneten
+>   Abrechnungen bleiben erhalten (sie stammen aus dem Code). Für dauerhaft
+>   erfasste Ablesungen/Belege ist Variante A oder eine externe Datenbank nötig.
+
+#### Passwortschutz
+
+Der Schutz ist automatisch aktiv, sobald ein Passwort gesetzt ist – über
+`.streamlit/secrets.toml` (`app_password = "…"`) oder die Umgebungsvariable
+`NK_APP_PASSWORD`. Ohne gesetztes Passwort läuft die App lokal ungeschützt.
+
 #### OCR-Backends (optional)
 
 Die Ablesung funktioniert immer auch manuell. Für die automatische Erkennung

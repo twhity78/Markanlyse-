@@ -13,6 +13,8 @@ automatisch vorgeschlagen und vom Nutzer bestätigt.
 
 from __future__ import annotations
 
+import hmac
+import os
 from datetime import date
 from pathlib import Path
 
@@ -46,6 +48,46 @@ def con():
 
 st.set_page_config(page_title="NK-Abrechnung Teinacher Str. 4",
                    page_icon="🏠", layout="wide")
+
+
+# ---------------------------------------------------------------------------
+# Passwortschutz (nur aktiv, wenn ein Passwort konfiguriert ist)
+# ---------------------------------------------------------------------------
+def _configured_password() -> str | None:
+    """Passwort aus st.secrets (Cloud) oder Umgebungsvariable, sonst None."""
+    try:
+        if "app_password" in st.secrets:
+            return str(st.secrets["app_password"])
+    except Exception:
+        pass
+    return os.environ.get("NK_APP_PASSWORD")
+
+
+def check_password() -> bool:
+    """Blockt die App mit einer Passwortabfrage, falls ein Passwort gesetzt ist.
+
+    Ohne konfiguriertes Passwort (lokaler Betrieb) läuft die App ungeschützt.
+    """
+    pw = _configured_password()
+    if not pw:
+        return True
+    if st.session_state.get("auth_ok"):
+        return True
+
+    st.title("🏠 NK-Abrechnung")
+    st.caption(cfg.OBJEKT["adresse"])
+    eingabe = st.text_input("Passwort", type="password",
+                            placeholder="Zugang zur Abrechnung")
+    if eingabe:
+        if hmac.compare_digest(eingabe, pw):
+            st.session_state["auth_ok"] = True
+            st.rerun()
+        else:
+            st.error("Falsches Passwort.")
+    st.stop()
+
+
+check_password()
 
 st.sidebar.title("🏠 NK-Abrechnung")
 st.sidebar.caption(cfg.OBJEKT["adresse"])
