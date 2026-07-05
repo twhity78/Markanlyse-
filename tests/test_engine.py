@@ -73,6 +73,25 @@ def test_monatsverteilung():
     assert v == {2024: 11, 2025: 4}
 
 
+def test_belege(tmp_path):
+    path = database.build(tmp_path / "test.db", overwrite=True)
+    con = database.connect(path)
+    try:
+        rid = database.add_receipt(
+            con, "strom", "/x/enbw.pdf", supplier="EnBW", amount=1234.56,
+            invoice_date="2026-03-01", period_from="2025-05-01",
+            period_to="2026-04-30", note="Jahresrechnung")
+        database.add_receipt(con, "versicherung", "/x/v.jpg", amount=290.16)
+        assert len(database.list_receipts(con)) == 2
+        assert len(database.list_receipts(con, "strom")) == 1
+        assert database.list_receipts(con, "strom")[0]["amount"] == 1234.56
+        pfad = database.delete_receipt(con, rid)
+        assert pfad == "/x/enbw.pdf"
+        assert len(database.list_receipts(con)) == 1
+    finally:
+        con.close()
+
+
 def test_datenbank_seed(tmp_path):
     path = database.build(tmp_path / "test.db", overwrite=True)
     con = sqlite3.connect(path)

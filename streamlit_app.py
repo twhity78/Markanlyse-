@@ -51,9 +51,19 @@ st.sidebar.title("🏠 NK-Abrechnung")
 st.sidebar.caption(cfg.OBJEKT["adresse"])
 seite = st.sidebar.radio(
     "Navigation",
-    ["📷 Zähler ablesen", "📋 Ablesungen", "🧾 Abrechnung",
-     "📊 Verbrauch & COP", "ℹ️ Status"],
+    ["📷 Zähler ablesen", "📋 Ablesungen", "🗂️ Belege",
+     "🧾 Abrechnung", "📊 Verbrauch & COP", "ℹ️ Status"],
 )
+
+RECEIPTS = OUTPUT / "receipts"
+KATEGORIE_LABEL = {
+    "strom": "⚡ Strom (EnBW)",
+    "wasser": "💧 Wasser/Abwasser",
+    "versicherung": "🛡️ Gebäudeversicherung",
+    "grundsteuer": "🏛️ Grundsteuer B",
+    "niederschlag": "🌧️ Niederschlagswasser",
+    "sonstiges": "📄 Sonstiges",
+}
 
 backends = ocr.available_backends()
 if backends:
@@ -155,6 +165,123 @@ elif seite == "📋 Ablesungen":
                     st.image(r["photo_path"],
                              caption=f"{r['description']} · {r['date']}",
                              width="stretch")
+
+
+# ---------------------------------------------------------------------------
+# 🗂️ Belege (Eingangsrechnungen: Strom, Wasser, Versicherung, …)
+# ---------------------------------------------------------------------------
+elif seite == "🗂️ Belege":
+    st.header("🗂️ Rechnungsbelege")
+    st.caption("Foto- oder PDF-Nachweise der aktuellen Eingangsrechnungen "
+               "(Strom, Wasser, Versicherung, Grundsteuer, Niederschlagswasser).")
+    RECEIPTS.mkdir(parents=True, exist_ok=True)
+    c = con()
+
+    tab_neu, tab_liste = st.tabs(["➕ Beleg erfassen", "📚 Belegübersicht"])
+
+    with tab_neu:
+        col1, col2 = st.columns(2)
+        with col1:
+            kat = st.selectbox("Kategorie", database.RECEIPT_CATEGORIES,
+                               format_func=lambda k: KATEGORIE_LABEL.get(k, k))
+            lieferant = st.text_input("Lieferant / Aussteller",
+                                      placeholder="z.B. EnBW, Gemeinde, Versicherer")
+            rechnungsdatum = st.date_input("Rechnungsdatum", value=date.today())
+        with col2:
+            p_von = st.date_input("Abrechnungszeitraum von", value=None)
+            p_bis = st.date_input("Abrechnungszeitraum bis", value=None)
+            notiz = st.text_input("Notiz (optional)")
+
+        beleg = st.file_uploader("Beleg (Foto oder PDF)",
+                                 type=["jpg", "jpeg", "png", "pdf"])
+        betrag_vorschlag = st.session_state.get("beleg_amount")
+        beleg_pfad = None
+
+        if beleg is not None:
+            ext = Path(beleg.name).suffix.lower() or ".bin"
+            ist_pdf = ext == ".pdf"
+            beleg_pfad = RECEIPTS / f"{kat}_{rechnungsdatum.isoformat()}_{beleg.name}"
+            beleg_pfad.write_bytes(beleg.getvalue())
+            if ist_pdf:
+                st.info(f"📄 PDF gespeichert: {beleg.name}")
+            else:
+                st.image(beleg, caption="Beleg", width=360)
+                if backends and st.button("🔍 Betrag per OCR erkennen"):
+                    with st.spinner("OCR läuft …"):
+                        res = ocr.read_amount(beleg_pfad)
+                    if res.value is not None:
+                        st.session_state["beleg_amount"] = res.value
+                        betrag_vorschlag = res.value
+                        st.success(f"Erkannt ({res.backend}): {res.value} €")
+                    else:
+                        st.warning(res.note or "Kein Betrag erkannt – bitte manuell eingeben.")
+                    if res.raw_text:
+                        st.caption(f"Rohtext: {res.raw_text}")
+
+        betrag = st.number_input(
+            "Rechnungsbetrag (€)",
+            value=float(betrag_vorschlag) if betrag_vorschlag is not None else 0.0,
+            step=0.01, format="%.2f",
+        )
+
+        if st.button("💾 Beleg speichern", type="primary",
+                     disabled=(beleg_pfad is None)):
+            database.add_receipt(
+                c, category=kat, file_path=str(beleg_pfad),
+                supplier=lieferant or None,
+                amount=float(betrag) if betrag > 0 else None,
+                invoice_date=rechnungsdatum.isoformat(),
+                period_from=p_von.isoformat() if p_von else None,
+                period_to=p_bis.isoformat() if p_bis else None,
+                note=notiz or None,
+            )
+            st.session_state.pop("beleg_amount", None)
+            st.success(f"Beleg gespeichert: {KATEGORIE_LABEL.get(kat, kat)}"
+                       + (f" · {_eur(betrag)}" if betrag > 0 else ""))
+
+    with tab_liste:
+        belege = database.list_receipts(c)
+        if not belege:
+            st.info("Noch keine Belege erfasst.")
+        else:
+            # Summen je Kategorie
+            summen: dict[str, float] = {}
+            for b in belege:
+                summen[b["category"]] = summen.get(b["category"], 0.0) + (b["amount"] or 0.0)
+            st.subheader("Summen je Kategorie")
+            st.table([{"Kategorie": KATEGORIE_LABEL.get(k, k), "Summe": _eur(v),
+                       "Belege": sum(1 for b in belege if b["category"] == k)}
+                      for k, v in summen.items()])
+
+            st.subheader("Alle Belege")
+            for b in belege:
+                titel = (f"{KATEGORIE_LABEL.get(b['category'], b['category'])} · "
+                         f"{b['supplier'] or '—'} · "
+                         f"{_eur(b['amount']) if b['amount'] else 'Betrag offen'} · "
+                         f"{b['invoice_date'] or ''}")
+                with st.expander(titel):
+                    zeitraum = (f"{b['period_from']} – {b['period_to']}"
+                                if b["period_from"] else "—")
+                    st.write(f"**Zeitraum:** {zeitraum}")
+                    if b["note"]:
+                        st.write(f"**Notiz:** {b['note']}")
+                    pfad = Path(b["file_path"]) if b["file_path"] else None
+                    if pfad and pfad.exists():
+                        if pfad.suffix.lower() == ".pdf":
+                            st.download_button("📄 PDF öffnen", pfad.read_bytes(),
+                                               file_name=pfad.name,
+                                               mime="application/pdf",
+                                               key=f"dl_{b['id']}")
+                        else:
+                            st.image(str(pfad), width=360)
+                    else:
+                        st.warning("Datei nicht gefunden.")
+                    if st.button("🗑️ Beleg löschen", key=f"del_{b['id']}"):
+                        p = database.delete_receipt(c, b["id"])
+                        if p and Path(p).exists():
+                            Path(p).unlink()
+                        st.rerun()
+    c.close()
 
 
 # ---------------------------------------------------------------------------

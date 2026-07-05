@@ -57,6 +57,10 @@ Die App bietet fünf Bereiche:
   der Datenbank. Eine Plausibilitätswarnung erscheint, wenn der neue Wert
   kleiner als die letzte Ablesung ist.
 - **📋 Ablesungen** – Tabelle aller Ablesungen inkl. Foto-Vorschau.
+- **🗂️ Belege** – Foto-/PDF-Nachweise der Eingangsrechnungen (Strom, Wasser,
+  Versicherung, Grundsteuer, Niederschlagswasser, Sonstiges) mit Lieferant,
+  Betrag, Rechnungsdatum und Zeitraum. Betrag wird bei Fotos per OCR
+  vorgeschlagen; Übersicht mit Summen je Kategorie und Löschfunktion.
 - **🧾 Abrechnung** – berechnete Ergebnisse je Partei mit PDF-Download.
 - **📊 Verbrauch & COP** – Zählerstände und COP-Plausibilitätsprüfung.
 - **ℹ️ Status** – Stammdaten, Kostenparameter, aktive OCR-Backends.
@@ -89,8 +93,8 @@ Erzeugte Dateien in `output/`:
 nk_abrechnung/
   config.py     Stammdaten, Zählerstände, Kostenparameter (einzige Datenquelle)
   engine.py     Berechnungslogik (Heizschlüssel, COP, Perioden-Abrechnung)
-  database.py   SQLite-Schema, Seeding und Ablese-Zugriffsfunktionen
-  ocr.py        Zählerstand-OCR (Claude Vision / Tesseract, mit Fallback)
+  database.py   SQLite-Schema, Seeding, Ablese- und Beleg-Zugriffsfunktionen
+  ocr.py        Zählerstand- und Rechnungsbetrag-OCR (Claude Vision / Tesseract)
   pdf.py        PDF-Erzeugung (ReportLab)
 main.py         Kommandozeilen-Einstieg
 streamlit_app.py  Web-Oberfläche für Foto-Ablesung und Abrechnung
@@ -98,7 +102,8 @@ tests/          Regressionstests gegen die dokumentierten Ergebnisse
 ```
 
 Erzeugte Ordner/Dateien (nicht versioniert): `output/nk_teinacher.db`,
-`output/photos/`, `output/*.pdf`.
+`output/photos/` (Zählerfotos), `output/receipts/` (Rechnungsbelege),
+`output/*.pdf`.
 
 ## Berechnungsmethodik
 

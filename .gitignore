@@ -8,3 +8,4 @@ venv/
 output/*.pdf
 output/*.db
 output/photos/
+output/receipts/

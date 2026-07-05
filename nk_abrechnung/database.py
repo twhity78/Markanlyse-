@@ -58,7 +58,25 @@ CREATE TABLE IF NOT EXISTS payments (
     amount  REAL NOT NULL,
     note    TEXT
 );
+
+CREATE TABLE IF NOT EXISTS receipts (
+    id           INTEGER PRIMARY KEY,
+    category     TEXT NOT NULL,          -- strom | wasser | versicherung | grundsteuer | niederschlag | sonstiges
+    supplier     TEXT,                   -- z.B. EnBW, Wasserversorger, Versicherer
+    amount       REAL,                   -- Rechnungsbetrag in EUR
+    invoice_date TEXT,                   -- Rechnungsdatum
+    period_from  TEXT,                   -- abgerechneter Zeitraum von
+    period_to    TEXT,                   -- abgerechneter Zeitraum bis
+    file_path    TEXT NOT NULL,          -- Foto-/PDF-Nachweis
+    note         TEXT,
+    created_at   TEXT DEFAULT (datetime('now'))
+);
 """
+
+# Kategorien für Belegnachweise (Eingangsrechnungen).
+RECEIPT_CATEGORIES = [
+    "strom", "wasser", "versicherung", "grundsteuer", "niederschlag", "sonstiges",
+]
 
 
 def connect(db_path: str | Path) -> sqlite3.Connection:
@@ -170,6 +188,43 @@ def list_readings(con: sqlite3.Connection, meter_id: int | None = None) -> list[
     cur = con.execute(sql, params)
     cols = [c[0] for c in cur.description]
     return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
+def add_receipt(con: sqlite3.Connection, category: str, file_path: str,
+                supplier: str | None = None, amount: float | None = None,
+                invoice_date: str | None = None, period_from: str | None = None,
+                period_to: str | None = None, note: str | None = None) -> int:
+    """Speichert einen Rechnungsbeleg (Foto/PDF-Nachweis) und gibt die ID zurück."""
+    cur = con.execute(
+        "INSERT INTO receipts(category, supplier, amount, invoice_date,"
+        " period_from, period_to, file_path, note) VALUES (?,?,?,?,?,?,?,?)",
+        (category, supplier, amount, invoice_date, period_from, period_to,
+         file_path, note),
+    )
+    con.commit()
+    return int(cur.lastrowid)
+
+
+def list_receipts(con: sqlite3.Connection, category: str | None = None) -> list[dict]:
+    sql = ("SELECT id, category, supplier, amount, invoice_date, period_from,"
+           " period_to, file_path, note FROM receipts")
+    params: tuple = ()
+    if category:
+        sql += " WHERE category = ?"
+        params = (category,)
+    sql += " ORDER BY invoice_date DESC, id DESC"
+    cur = con.execute(sql, params)
+    cols = [c[0] for c in cur.description]
+    return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
+def delete_receipt(con: sqlite3.Connection, receipt_id: int) -> str | None:
+    """Löscht einen Beleg und gibt den zugehörigen Dateipfad zurück."""
+    row = con.execute("SELECT file_path FROM receipts WHERE id = ?",
+                      (receipt_id,)).fetchone()
+    con.execute("DELETE FROM receipts WHERE id = ?", (receipt_id,))
+    con.commit()
+    return row[0] if row else None
 
 
 def build(db_path: str | Path, overwrite: bool = False) -> Path:
