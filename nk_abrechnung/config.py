@@ -24,6 +24,18 @@ OBJEKT = {
     "flaeche_gesamt_m2": 270.0,
 }
 
+# ---------------------------------------------------------------------------
+# Eigentümerwechsel (Übergabe)
+# ---------------------------------------------------------------------------
+# Thomas Weis übergibt seinen Miteigentumsanteil an einen neuen Eigentümer,
+# der künftig selbst im Objekt wohnt. Sobald der Name feststeht, hier EINMAL
+# eintragen – er wird dann in der App (z.B. Auswahl "Erfasst von") und in
+# künftig erzeugten PDFs verwendet. Die bereits abgeschlossenen historischen
+# Abrechnungen (P1 Felix, Leerstand, P2 Beltz) bleiben unverändert Thomas
+# Weis zugeordnet, da sie in dessen Eigentumszeit fielen.
+NEUER_EIGENTUEMER_NAME = "Neuer Eigentümer (Name folgt)"
+ZWEITE_PARTEI_NAME = "Christine Weis"
+
 # UG-Anteil an der Gesamtfläche = 88 / 270 = 32,59 %
 UG_ANTEIL = OBJEKT["flaeche_ug_m2"] / OBJEKT["flaeche_gesamt_m2"]
 

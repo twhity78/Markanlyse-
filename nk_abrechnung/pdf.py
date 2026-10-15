@@ -151,12 +151,17 @@ def abrechnung_pdf(ab: e.Abrechnung, pfad: str | Path,
 
 
 def eigentuemer_pdf(es: e.EigentuemerSaldo, pfad: str | Path) -> Path:
-    """Eigentümer-interner Zwischenstand Thomas ↔ Christine Weis."""
+    """Eigentümer-interner Zwischenstand (aktuell: neuer Eigentümer ↔ zweite Partei).
+
+    Historische Positionen (P1, Leerstand, P2) fielen noch in die
+    Eigentumszeit von Thomas Weis; der Kopf des PDFs zeigt die aktuellen,
+    künftig zuständigen Parteien aus :mod:`nk_abrechnung.config`.
+    """
     pfad = Path(pfad)
     s = _styles()
     story = []
     _kopf(story, s, "Eigentümer-interne Abrechnung (Zwischenstand)",
-          "Thomas Weis → Christine Weis",
+          f"{cfg.NEUER_EIGENTUEMER_NAME} → {cfg.ZWEITE_PARTEI_NAME}",
           f"Stand {date.today():%d.%m.%Y}")
 
     rows = [["Position", "Betrag"]]

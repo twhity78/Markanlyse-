@@ -3,6 +3,11 @@ pillow>=10.0
 streamlit>=1.30
 pytest>=7.0
 
+# Für den geteilten Cloud-Speicher (Supabase/Postgres) – ohne DATABASE_URL
+# wird automatisch die lokale SQLite-Datei verwendet, dann wird dieses
+# Paket nicht benötigt.
+psycopg2-binary>=2.9
+
 # Optional für OCR per Tesseract (zusätzlich Systempaket 'tesseract-ocr'):
 # pytesseract>=0.3
 # Claude-Vision-OCR benötigt nur die Umgebungsvariable ANTHROPIC_API_KEY.

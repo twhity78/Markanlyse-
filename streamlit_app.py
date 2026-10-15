@@ -2,13 +2,19 @@
 
 Teinacher Str. 4, 75387 Neubulach.
 
-Start:
+Start lokal:
     streamlit run streamlit_app.py
 
-Fotos werden unter ``output/photos`` abgelegt, Ablesungen in der SQLite-
-Datenbank ``output/nk_teinacher.db`` gespeichert. Der Zählerstand wird –
-sofern ein OCR-Backend verfügbar ist (Claude Vision oder Tesseract) –
-automatisch vorgeschlagen und vom Nutzer bestätigt.
+Gemeinsamer Cloud-Betrieb (beide Parteien, jederzeit, von überall):
+    Mit DATABASE_URL (Supabase/Postgres) in den Secrets läuft die App auf
+    einer geteilten Datenbank statt der lokalen SQLite-Datei. Zählerstände,
+    Belege UND die zugehörigen Fotos werden direkt in der Datenbank
+    gespeichert (nicht als lokale Datei), damit beide Parteien sie von
+    jedem Gerät aus sehen und ergänzen können – siehe README.md.
+
+Der Zählerstand bzw. Rechnungsbetrag wird – sofern ein OCR-Backend
+verfügbar ist (Claude Vision oder Tesseract) – automatisch vorgeschlagen
+und vom Nutzer bestätigt.
 """
 
 from __future__ import annotations
@@ -22,12 +28,11 @@ import streamlit as st
 
 from nk_abrechnung import config as cfg
 from nk_abrechnung import engine as e
-from nk_abrechnung import database, ocr, pdf
+from nk_abrechnung import database, db_backend, handbuch, media, ocr, pdf
 
 BASE = Path(__file__).parent
 OUTPUT = BASE / "output"
-PHOTOS = OUTPUT / "photos"
-DB_PATH = OUTPUT / "nk_teinacher.db"
+DB_PATH = OUTPUT / "nk_teinacher.db"  # nur relevant im lokalen SQLite-Modus
 
 
 def _eur(v: float) -> str:
@@ -38,7 +43,6 @@ def _eur(v: float) -> str:
 @st.cache_resource
 def get_db_path() -> str:
     OUTPUT.mkdir(exist_ok=True)
-    PHOTOS.mkdir(exist_ok=True)
     return str(database.build(DB_PATH))
 
 
@@ -97,7 +101,6 @@ seite = st.sidebar.radio(
      "🧾 Abrechnung", "📊 Verbrauch & COP", "ℹ️ Status"],
 )
 
-RECEIPTS = OUTPUT / "receipts"
 KATEGORIE_LABEL = {
     "strom": "⚡ Strom (EnBW)",
     "wasser": "💧 Wasser/Abwasser",
@@ -115,6 +118,14 @@ else:
                     "Aktivierbar über `ANTHROPIC_API_KEY` (Claude Vision) "
                     "oder Installation von Tesseract.")
 
+if db_backend.database_url():
+    st.sidebar.success("☁️ Geteilte Cloud-Datenbank aktiv – beide Parteien "
+                       "sehen dieselben Daten, dauerhaft gespeichert.")
+else:
+    st.sidebar.warning("💾 Lokale Datenbank (SQLite) – nur auf diesem Rechner. "
+                       "Für geteilten Zugriff beider Parteien: DATABASE_URL "
+                       "(Supabase) in den Secrets setzen, siehe README.")
+
 
 # ---------------------------------------------------------------------------
 # 📷 Zähler ablesen
@@ -130,6 +141,7 @@ if seite == "📷 Zähler ablesen":
         wahl = st.selectbox("Zähler", list(labels))
         meter = labels[wahl]
         ablesedatum = st.date_input("Ablesedatum", value=date.today())
+        erfasser = st.selectbox("Erfasst von", database.ERFASSER_OPTIONEN)
     with col2:
         quelle = st.radio("Foto-Quelle", ["Hochladen", "Kamera"], horizontal=True)
         if quelle == "Kamera":
@@ -138,17 +150,16 @@ if seite == "📷 Zähler ablesen":
             bild = st.file_uploader("Zählerfoto", type=["jpg", "jpeg", "png"])
 
     vorschlag = st.session_state.get("ocr_value")
-    foto_pfad = None
+    foto_bytes = foto_name = foto_mime = None
 
     if bild is not None:
         st.image(bild, caption="Zählerfoto", width=360)
-        ext = Path(getattr(bild, "name", "foto.png")).suffix or ".png"
-        foto_pfad = PHOTOS / f"{meter['serial_no']}_{ablesedatum.isoformat()}{ext}"
-        foto_pfad.write_bytes(bild.getvalue())
+        foto_bytes, foto_mime = media.compress_image(bild.getvalue())
+        foto_name = Path(getattr(bild, "name", "foto.jpg")).name
 
         if backends and st.button("🔍 Zählerstand per OCR erkennen"):
             with st.spinner("OCR läuft …"):
-                res = ocr.read_meter(foto_pfad)
+                res = ocr.read_meter(foto_bytes, foto_mime)
             if res.value is not None:
                 st.session_state["ocr_value"] = res.value
                 vorschlag = res.value
@@ -170,14 +181,16 @@ if seite == "📷 Zähler ablesen":
         letzte = max(vorherige, key=lambda r: r["date"])
         if wert and wert < letzte["value"]:
             st.warning(f"⚠️ Wert kleiner als letzte Ablesung "
-                       f"({letzte['value']} am {letzte['date']}). Bitte prüfen.")
+                       f"({letzte['value']} am {letzte['date']}, "
+                       f"erfasst von {letzte['recorded_by'] or '–'}). Bitte prüfen.")
 
     if st.button("💾 Ablesung speichern", type="primary", disabled=(wert <= 0)):
         database.add_reading(c, meter["id"], ablesedatum.isoformat(), float(wert),
-                             str(foto_pfad) if foto_pfad else None)
+                             recorded_by=erfasser, photo_filename=foto_name,
+                             photo_mime=foto_mime, photo_data=foto_bytes)
         st.session_state.pop("ocr_value", None)
         st.success(f"Gespeichert: {meter['description']} = {wert} {meter['unit']} "
-                   f"({ablesedatum.isoformat()})")
+                   f"({ablesedatum.isoformat()}, erfasst von {erfasser})")
     c.close()
 
 
@@ -186,27 +199,34 @@ if seite == "📷 Zähler ablesen":
 # ---------------------------------------------------------------------------
 elif seite == "📋 Ablesungen":
     st.header("📋 Erfasste Ablesungen")
+    st.caption("Sichtbar für beide Parteien – unabhängig davon, wer die "
+               "Ablesung erfasst hat.")
     c = con()
     readings = database.list_readings(c)
-    c.close()
     if not readings:
         st.info("Noch keine Ablesungen erfasst.")
     else:
         tabelle = [{"Datum": r["date"], "Zähler": r["description"],
                     "Nr.": r["serial_no"], "Wert": r["value"],
-                    "Einheit": r["unit"], "Foto": "📎" if r["photo_path"] else ""}
+                    "Einheit": r["unit"], "Erfasst von": r["recorded_by"] or "–",
+                    "Foto": "📎" if r["has_photo"] else ""}
                    for r in readings]
         st.dataframe(tabelle, width="stretch", hide_index=True)
 
-        mit_foto = [r for r in readings if r["photo_path"] and Path(r["photo_path"]).exists()]
+        mit_foto = [r for r in readings if r["has_photo"]]
         if mit_foto:
             st.subheader("Fotonachweise")
             cols = st.columns(4)
             for i, r in enumerate(mit_foto):
+                foto = database.get_reading_photo(c, r["id"])
+                if not foto:
+                    continue
+                _name, _mime, data = foto
                 with cols[i % 4]:
-                    st.image(r["photo_path"],
-                             caption=f"{r['description']} · {r['date']}",
+                    st.image(data,
+                             caption=f"{r['description']} · {r['date']} · {r['recorded_by'] or ''}",
                              width="stretch")
+    c.close()
 
 
 # ---------------------------------------------------------------------------
@@ -215,8 +235,9 @@ elif seite == "📋 Ablesungen":
 elif seite == "🗂️ Belege":
     st.header("🗂️ Rechnungsbelege")
     st.caption("Foto- oder PDF-Nachweise der aktuellen Eingangsrechnungen "
-               "(Strom, Wasser, Versicherung, Grundsteuer, Niederschlagswasser).")
-    RECEIPTS.mkdir(parents=True, exist_ok=True)
+               "(Strom, Wasser, Versicherung, Grundsteuer, Niederschlagswasser). "
+               "Viele Rechnungen gehen bei Christine Weis ein – hier erfasst, "
+               "sind sie sofort auch für die andere Partei dokumentiert.")
     c = con()
 
     tab_neu, tab_liste = st.tabs(["➕ Beleg erfassen", "📚 Belegübersicht"])
@@ -229,6 +250,8 @@ elif seite == "🗂️ Belege":
             lieferant = st.text_input("Lieferant / Aussteller",
                                       placeholder="z.B. EnBW, Gemeinde, Versicherer")
             rechnungsdatum = st.date_input("Rechnungsdatum", value=date.today())
+            erfasser = st.selectbox("Erfasst von", database.ERFASSER_OPTIONEN,
+                                    key="beleg_erfasser")
         with col2:
             p_von = st.date_input("Abrechnungszeitraum von", value=None)
             p_bis = st.date_input("Abrechnungszeitraum bis", value=None)
@@ -237,20 +260,16 @@ elif seite == "🗂️ Belege":
         beleg = st.file_uploader("Beleg (Foto oder PDF)",
                                  type=["jpg", "jpeg", "png", "pdf"])
         betrag_vorschlag = st.session_state.get("beleg_amount")
-        beleg_pfad = None
+        beleg_bytes = beleg_mime = None
 
         if beleg is not None:
-            ext = Path(beleg.name).suffix.lower() or ".bin"
-            ist_pdf = ext == ".pdf"
-            beleg_pfad = RECEIPTS / f"{kat}_{rechnungsdatum.isoformat()}_{beleg.name}"
-            beleg_pfad.write_bytes(beleg.getvalue())
-            if ist_pdf:
-                st.info(f"📄 PDF gespeichert: {beleg.name}")
-            else:
+            ist_bild = media.is_image(beleg.name, beleg.type)
+            if ist_bild:
+                beleg_bytes, beleg_mime = media.compress_image(beleg.getvalue())
                 st.image(beleg, caption="Beleg", width=360)
                 if backends and st.button("🔍 Betrag per OCR erkennen"):
                     with st.spinner("OCR läuft …"):
-                        res = ocr.read_amount(beleg_pfad)
+                        res = ocr.read_amount(beleg_bytes, beleg_mime)
                     if res.value is not None:
                         st.session_state["beleg_amount"] = res.value
                         betrag_vorschlag = res.value
@@ -259,6 +278,10 @@ elif seite == "🗂️ Belege":
                         st.warning(res.note or "Kein Betrag erkannt – bitte manuell eingeben.")
                     if res.raw_text:
                         st.caption(f"Rohtext: {res.raw_text}")
+            else:
+                beleg_bytes = beleg.getvalue()
+                beleg_mime = "application/pdf"
+                st.info(f"📄 PDF bereit zum Speichern: {beleg.name}")
 
         betrag = st.number_input(
             "Rechnungsbetrag (€)",
@@ -267,26 +290,26 @@ elif seite == "🗂️ Belege":
         )
 
         if st.button("💾 Beleg speichern", type="primary",
-                     disabled=(beleg_pfad is None)):
+                     disabled=(beleg_bytes is None)):
             database.add_receipt(
-                c, category=kat, file_path=str(beleg_pfad),
-                supplier=lieferant or None,
+                c, category=kat, file_name=beleg.name, file_data=beleg_bytes,
+                file_mime=beleg_mime, supplier=lieferant or None,
                 amount=float(betrag) if betrag > 0 else None,
                 invoice_date=rechnungsdatum.isoformat(),
                 period_from=p_von.isoformat() if p_von else None,
                 period_to=p_bis.isoformat() if p_bis else None,
-                note=notiz or None,
+                recorded_by=erfasser, note=notiz or None,
             )
             st.session_state.pop("beleg_amount", None)
             st.success(f"Beleg gespeichert: {KATEGORIE_LABEL.get(kat, kat)}"
-                       + (f" · {_eur(betrag)}" if betrag > 0 else ""))
+                       + (f" · {_eur(betrag)}" if betrag > 0 else "")
+                       + f" · erfasst von {erfasser}")
 
     with tab_liste:
         belege = database.list_receipts(c)
         if not belege:
             st.info("Noch keine Belege erfasst.")
         else:
-            # Summen je Kategorie
             summen: dict[str, float] = {}
             for b in belege:
                 summen[b["category"]] = summen.get(b["category"], 0.0) + (b["amount"] or 0.0)
@@ -305,23 +328,22 @@ elif seite == "🗂️ Belege":
                     zeitraum = (f"{b['period_from']} – {b['period_to']}"
                                 if b["period_from"] else "—")
                     st.write(f"**Zeitraum:** {zeitraum}")
+                    st.write(f"**Erfasst von:** {b['recorded_by'] or '–'}")
                     if b["note"]:
                         st.write(f"**Notiz:** {b['note']}")
-                    pfad = Path(b["file_path"]) if b["file_path"] else None
-                    if pfad and pfad.exists():
-                        if pfad.suffix.lower() == ".pdf":
-                            st.download_button("📄 PDF öffnen", pfad.read_bytes(),
-                                               file_name=pfad.name,
-                                               mime="application/pdf",
-                                               key=f"dl_{b['id']}")
-                        else:
-                            st.image(str(pfad), width=360)
-                    else:
-                        st.warning("Datei nicht gefunden.")
+                    if st.button("📂 Datei anzeigen", key=f"show_{b['id']}"):
+                        datei = database.get_receipt_file(c, b["id"])
+                        if datei:
+                            fname, fmime, fdata = datei
+                            if (fmime or "").startswith("image/"):
+                                st.image(fdata, width=360)
+                            else:
+                                st.download_button(
+                                    "📄 PDF öffnen", fdata, file_name=fname,
+                                    mime=fmime or "application/pdf",
+                                    key=f"dl_{b['id']}")
                     if st.button("🗑️ Beleg löschen", key=f"del_{b['id']}"):
-                        p = database.delete_receipt(c, b["id"])
-                        if p and Path(p).exists():
-                            Path(p).unlink()
+                        database.delete_receipt(c, b["id"])
                         st.rerun()
     c.close()
 
@@ -359,16 +381,19 @@ elif seite == "🧾 Abrechnung":
             st.download_button("📄 PDF herunterladen", Path(pfad).read_bytes(),
                                file_name=dateiname, mime="application/pdf", key=key)
 
-    st.subheader("Eigentümer-intern (Thomas → Christine)")
+    st.subheader(f"Eigentümer-intern ({cfg.NEUER_EIGENTUEMER_NAME} ↔ {cfg.ZWEITE_PARTEI_NAME})")
+    st.caption("Historische Positionen (P1, Leerstand, P2) fielen noch in die "
+              "Eigentumszeit von Thomas Weis; künftige Positionen betreffen "
+              "den neuen Eigentümer.")
     es = e.eigentuemer_zwischenstand()
     st.table([{"Position": b, "Betrag": _eur(v)} for b, v in es.positionen]
              + [{"Position": "Zwischensaldo", "Betrag": _eur(es.zwischensaldo)}])
     st.caption(f"Kulanz WW-EG erlassen: {_eur(es.ww_eg_erlassen)}")
     for p in es.offene_punkte:
         st.warning("Offen: " + p)
-    epfad = pdf.eigentuemer_pdf(es, OUTPUT / "NK_Christine_Weis_Zwischenstand.pdf")
+    epfad = pdf.eigentuemer_pdf(es, OUTPUT / "NK_Eigentuemer_Zwischenstand.pdf")
     st.download_button("📄 Eigentümer-PDF", Path(epfad).read_bytes(),
-                       file_name="NK_Christine_Weis_Zwischenstand.pdf",
+                       file_name="NK_Eigentuemer_Zwischenstand.pdf",
                        mime="application/pdf")
 
 
@@ -420,7 +445,11 @@ else:
     st.write(f"**Objekt:** {cfg.OBJEKT['adresse']}")
     st.write(f"**UG-Anteil:** {cfg.UG_ANTEIL*100:.2f} %  ·  "
              f"**Strompreis:** {_eur(cfg.STROMPREIS_EUR_KWH)}/kWh")
-    st.write(f"**Datenbank:** `{DB_PATH}`")
+    st.write(f"**Eigentümer:** {cfg.NEUER_EIGENTUEMER_NAME} / {cfg.ZWEITE_PARTEI_NAME}")
+    if db_backend.database_url():
+        st.write("**Datenbank:** ☁️ Postgres/Supabase (geteilt, dauerhaft)")
+    else:
+        st.write(f"**Datenbank:** 💾 lokal `{DB_PATH}`")
     st.write(f"**OCR-Backends:** {', '.join(backends) if backends else 'keine'}")
     st.divider()
     st.write("**Kostenparameter**")
@@ -432,3 +461,11 @@ else:
         {"Parameter": "Grundsteuer B", "Wert": f"{_eur(cfg.GRUNDSTEUER_EUR_MONAT)}/Mon"},
         {"Parameter": "EnBW Grundpreis/Monat", "Wert": f"{_eur(cfg.ENBW_GRUNDPREIS_EUR_MONAT)}"},
     ])
+    st.divider()
+    st.write("**Übergabe-Handbuch**")
+    st.caption("Ausführliche Schritt-für-Schritt-Anleitung (Einrichtung, tägliche "
+              "Nutzung, jährliche Abrechnung, offene Punkte, Problembehebung).")
+    OUTPUT.mkdir(exist_ok=True)
+    hpfad = handbuch.handbuch_pdf(OUTPUT / "Handbuch_Uebergabe.pdf")
+    st.download_button("📘 Handbuch herunterladen (PDF)", Path(hpfad).read_bytes(),
+                       file_name="Handbuch_Uebergabe.pdf", mime="application/pdf")

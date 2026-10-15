@@ -9,6 +9,28 @@ berechneten Summen reproduzieren die im Projekt dokumentierten
 Abrechnungsergebnisse (centgenau bis auf Rundungsartefakte im
 Ausgangsdokument, Toleranz ≤ 2 Cent).
 
+## 🔑 Übergabe an den neuen Eigentümer
+
+Dieses Programm wird an den neuen Eigentümer des Objekts übergeben, der
+künftig selbst im Haus wohnt und die laufende Abrechnung mit der zweiten
+Partei (Christine Weis, Miteigentümerin) **lückenlos** fortführt. Ein
+ausführliches PDF-Handbuch (`Handbuch_Uebergabe.pdf`) begleitet diese
+Übergabe und erklärt Schritt für Schritt, wie die App eingerichtet und
+genutzt wird – auch ohne Programmierkenntnisse.
+
+- **Name des neuen Eigentümers:** aktuell Platzhalter
+  `"Neuer Eigentümer (Name folgt)"` in `nk_abrechnung/config.py`
+  (Konstante `NEUER_EIGENTUEMER_NAME`) – dort **einmal** eintragen, sobald
+  bekannt; er erscheint danach automatisch überall in der App und in neuen
+  PDFs.
+- **Historische Abrechnungen** (Felix Adameck, Leerstand, Fam. Beltz bis zum
+  Eigentümerwechsel) bleiben unverändert Thomas Weis zugeordnet, da sie in
+  dessen Eigentumszeit fielen – sie werden nicht nachträglich umbenannt.
+- **Geteilter Zugriff:** Damit beide Parteien jederzeit dieselben
+  Zählerstände und Belege sehen und erfassen können, nutzt die App eine
+  gemeinsame Cloud-Datenbank (Supabase/Postgres) statt einer lokalen Datei –
+  siehe Abschnitt "☁️ Gemeinsamer Zugriff für beide Parteien" weiter unten.
+
 ## Objekt
 
 | | |
@@ -49,21 +71,53 @@ python main.py alles     # DB + PDFs + Konsolenausgabe
 streamlit run streamlit_app.py
 ```
 
-Die App bietet fünf Bereiche:
+Die App bietet sechs Bereiche:
 
 - **📷 Zähler ablesen** – Zähler wählen, Foto hochladen oder mit der Kamera
-  aufnehmen; der Zählerstand wird per OCR vorgeschlagen und bestätigt. Das
-  Foto wird als Nachweis unter `output/photos/` gespeichert, die Ablesung in
-  der Datenbank. Eine Plausibilitätswarnung erscheint, wenn der neue Wert
-  kleiner als die letzte Ablesung ist.
-- **📋 Ablesungen** – Tabelle aller Ablesungen inkl. Foto-Vorschau.
+  aufnehmen; der Zählerstand wird per OCR vorgeschlagen und bestätigt. Ein
+  Feld **"Erfasst von"** hält fest, wer die Ablesung gemacht hat. Eine
+  Plausibilitätswarnung erscheint, wenn der neue Wert kleiner als die letzte
+  Ablesung ist.
+- **📋 Ablesungen** – Tabelle aller Ablesungen inkl. Foto-Vorschau und
+  "Erfasst von" – für beide Parteien jederzeit einsehbar.
 - **🗂️ Belege** – Foto-/PDF-Nachweise der Eingangsrechnungen (Strom, Wasser,
   Versicherung, Grundsteuer, Niederschlagswasser, Sonstiges) mit Lieferant,
-  Betrag, Rechnungsdatum und Zeitraum. Betrag wird bei Fotos per OCR
-  vorgeschlagen; Übersicht mit Summen je Kategorie und Löschfunktion.
+  Betrag, Rechnungsdatum, Zeitraum und "Erfasst von". Praktisch, da viele
+  Rechnungen bei der zweiten Partei eingehen – einmal hier erfasst, sind sie
+  sofort für beide dokumentiert. Betrag wird bei Fotos per OCR vorgeschlagen;
+  Übersicht mit Summen je Kategorie und Löschfunktion.
 - **🧾 Abrechnung** – berechnete Ergebnisse je Partei mit PDF-Download.
 - **📊 Verbrauch & COP** – Zählerstände und COP-Plausibilitätsprüfung.
-- **ℹ️ Status** – Stammdaten, Kostenparameter, aktive OCR-Backends.
+- **ℹ️ Status** – Stammdaten, Kostenparameter, aktive OCR-Backends, aktives
+  Datenbank-Backend.
+
+### ☁️ Gemeinsamer Zugriff für beide Parteien (wichtig)
+
+Damit **beide Parteien jederzeit, von jedem Gerät aus**, dieselben
+Zählerstände und Belege sehen und ergänzen können, reicht die lokale
+SQLite-Datei nicht aus – sie liegt nur auf einem Rechner und ist auf
+Streamlit Cloud bei einem Neustart der App leer. Für echten, dauerhaften,
+geteilten Zugriff wird eine **Postgres-Datenbank (kostenlos über Supabase)**
+angebunden. Fotos und Beleg-Dateien werden dabei direkt in der Datenbank
+gespeichert (nicht als lokale Datei), damit sie ebenfalls geteilt und
+dauerhaft sind – vor dem Speichern werden sie automatisch verkleinert
+(max. 1600 px, JPEG), damit der kostenlose Tarif ausreicht.
+
+**Einrichtung (einmalig, ca. 5 Minuten):**
+
+1. Kostenloses Projekt auf [supabase.com](https://supabase.com) anlegen.
+2. Unter **Project Settings → Database → Connection string → URI** die
+   Verbindungszeichenfolge kopieren (Format
+   `postgresql://postgres:PASSWORT@db.XXXXX.supabase.co:5432/postgres`).
+3. Diese Zeichenfolge als `DATABASE_URL` in die Secrets eintragen – lokal in
+   `.streamlit/secrets.toml` (Vorlage: `.streamlit/secrets.toml.example`),
+   in der Cloud unter **Manage app → Settings → Secrets**.
+4. App neu starten. In der Seitenleiste erscheint **"☁️ Geteilte
+   Cloud-Datenbank aktiv"**, sobald die Verbindung funktioniert.
+
+Ohne `DATABASE_URL` läuft die App weiterhin mit der lokalen SQLite-Datei
+(Seitenleiste zeigt dann **"💾 Lokale Datenbank"**) – praktisch zum Testen,
+aber nicht für den geteilten Betrieb beider Parteien gedacht.
 
 ### 📱 App auf dem Handy nutzen
 
@@ -78,8 +132,9 @@ Handy und Rechner müssen im selben WLAN sein. Auf dem Rechner:
 ```
 
 Das Skript zeigt eine Adresse wie `http://192.168.1.23:8501` an – diese auf
-dem Handy im Browser öffnen. Die Daten bleiben komplett auf dem eigenen
-Rechner; der Rechner muss dabei laufen.
+dem Handy im Browser öffnen. Ohne `DATABASE_URL` laufen die Daten nur über
+diesen einen Rechner; mit `DATABASE_URL` (siehe oben) sehen auch von hier
+aus beide Parteien dieselbe geteilte Datenbank.
 
 #### Variante B – Streamlit Community Cloud (überall erreichbar, kostenlos)
 
@@ -89,21 +144,24 @@ Feste Web-Adresse, die von jedem Handy aus funktioniert:
    anmelden und **"New app"** wählen.
 2. Repository `twhity78/Markanlyse-`, Branch `main`, Hauptdatei
    `streamlit_app.py` auswählen.
-3. Unter **Advanced settings → Secrets** ein Passwort hinterlegen
-   (Inhalt aus `.streamlit/secrets.toml.example`):
+3. Unter **Advanced settings → Secrets** Passwort UND `DATABASE_URL`
+   hinterlegen (Inhalt aus `.streamlit/secrets.toml.example`):
    ```toml
    app_password = "dein-sicheres-passwort"
+   DATABASE_URL = "postgresql://postgres:…@db.….supabase.co:5432/postgres"
    ```
 4. **Deploy** klicken. Nach ~1 Minute ist die App unter einer
-   `…streamlit.app`-Adresse erreichbar – diese als Lesezeichen aufs Handy legen.
+   `…streamlit.app`-Adresse erreichbar – diese als Lesezeichen aufs Handy legen
+   (beide Parteien nutzen dieselbe Adresse).
 
 > **Wichtig bei Variante B:**
-> - Der **Passwortschutz** (Schritt 3) ist bei öffentlichem Hosting dringend
->   empfohlen, da die App Mieter- und Abrechnungsdaten enthält.
-> - Der Speicher der Cloud ist **flüchtig**: dort erfasste Ablesungen und
+> - Der **Passwortschutz** ist bei öffentlichem Hosting dringend empfohlen,
+>   da die App Mieter- und Abrechnungsdaten enthält.
+> - **`DATABASE_URL` unbedingt mit einrichten** (siehe Abschnitt oben) – ohne
+>   sie ist der Speicher der Cloud **flüchtig**: erfasste Ablesungen und
 >   Belege gehen bei einem Neustart der App verloren. Die berechneten
->   Abrechnungen bleiben erhalten (sie stammen aus dem Code). Für dauerhaft
->   erfasste Ablesungen/Belege ist Variante A oder eine externe Datenbank nötig.
+>   Abrechnungen bleiben zwar erhalten (sie stammen aus dem Code), aber
+>   neu erfasste Daten nicht.
 
 #### Passwortschutz
 
@@ -124,32 +182,36 @@ wird das beste verfügbare Backend genutzt:
 Ist keines vorhanden, wird der Wert manuell eingegeben – das Foto dient
 dann als Nachweis.
 
-Erzeugte Dateien in `output/`:
+Erzeugte PDF-Dateien in `output/` (werden bei Bedarf aus der App heraus neu
+erzeugt, sind reine Exporte – die eigentlichen Daten liegen in der Datenbank):
 
 - `NK_Felix_Adameck.pdf` – Nebenkostenabrechnung P1
 - `NK_Beltz_Abschluss.pdf` – Abschlussabrechnung P2 (inkl. 80 € Renovierung)
 - `NK_Leerstand_Thomas.pdf` – Leerstandskosten
-- `NK_Christine_Weis_Zwischenstand.pdf` – Eigentümer-interne Verrechnung
+- `NK_Eigentuemer_Zwischenstand.pdf` – Eigentümer-interne Verrechnung
 - `NK_Verbrauchsuebersicht.pdf` – Zählerstände + COP-Plausibilität
-- `nk_teinacher.db` – SQLite-Datenbank mit Zählern, Ablesungen, Kosten, Zahlungen
 
 ## Projektstruktur
 
 ```
 nk_abrechnung/
-  config.py     Stammdaten, Zählerstände, Kostenparameter (einzige Datenquelle)
-  engine.py     Berechnungslogik (Heizschlüssel, COP, Perioden-Abrechnung)
-  database.py   SQLite-Schema, Seeding, Ablese- und Beleg-Zugriffsfunktionen
-  ocr.py        Zählerstand- und Rechnungsbetrag-OCR (Claude Vision / Tesseract)
-  pdf.py        PDF-Erzeugung (ReportLab)
-main.py         Kommandozeilen-Einstieg
-streamlit_app.py  Web-Oberfläche für Foto-Ablesung und Abrechnung
-tests/          Regressionstests gegen die dokumentierten Ergebnisse
+  config.py      Stammdaten, Zählerstände, Kostenparameter (einzige Datenquelle)
+  engine.py      Berechnungslogik (Heizschlüssel, COP, Perioden-Abrechnung)
+  db_backend.py  Backend-Umschaltung SQLite ↔ Postgres/Supabase
+  database.py    Schema, Seeding, Ablese- und Beleg-Zugriffsfunktionen
+  media.py       Bildkompression für Foto-Uploads
+  ocr.py         Zählerstand- und Rechnungsbetrag-OCR (Claude Vision / Tesseract)
+  pdf.py         PDF-Erzeugung (ReportLab)
+main.py          Kommandozeilen-Einstieg
+streamlit_app.py Web-Oberfläche: Foto-Ablesung, Belege, Abrechnung
+start_mobile.sh  Startet die App im lokalen WLAN
+tests/           Regressionstests (SQLite immer, Postgres wenn erreichbar)
 ```
 
-Erzeugte Ordner/Dateien (nicht versioniert): `output/nk_teinacher.db`,
-`output/photos/` (Zählerfotos), `output/receipts/` (Rechnungsbelege),
-`output/*.pdf`.
+Lokal ohne `DATABASE_URL` erzeugte Datei (nicht versioniert):
+`output/nk_teinacher.db` (SQLite, inkl. Fotos/Belege als Blob). Mit
+`DATABASE_URL` liegen alle Daten – auch Fotos und Belege – in der
+Postgres-Datenbank, nicht lokal.
 
 ## Berechnungsmethodik
 

@@ -5,13 +5,14 @@ Toleranz 2 Cent, da das Ausgangsdokument an einzelnen Stellen
 uneinheitlich rundet (z. B. Grundsteuer 235,97 statt 235,98).
 """
 
+import os
 import sqlite3
 
 import pytest
 
 from nk_abrechnung import config as cfg
 from nk_abrechnung import engine as e
-from nk_abrechnung import database
+from nk_abrechnung import database, db_backend
 
 TOL = 0.02
 
@@ -78,17 +79,121 @@ def test_belege(tmp_path):
     con = database.connect(path)
     try:
         rid = database.add_receipt(
-            con, "strom", "/x/enbw.pdf", supplier="EnBW", amount=1234.56,
-            invoice_date="2026-03-01", period_from="2025-05-01",
-            period_to="2026-04-30", note="Jahresrechnung")
-        database.add_receipt(con, "versicherung", "/x/v.jpg", amount=290.16)
+            con, "strom", "enbw.pdf", b"%PDF-1.4 fake", file_mime="application/pdf",
+            supplier="EnBW", amount=1234.56, invoice_date="2026-03-01",
+            period_from="2025-05-01", period_to="2026-04-30",
+            recorded_by=cfg.ZWEITE_PARTEI_NAME, note="Jahresrechnung")
+        database.add_receipt(con, "versicherung", "v.jpg", b"\xff\xd8fake",
+                             file_mime="image/jpeg", amount=290.16)
         assert len(database.list_receipts(con)) == 2
         assert len(database.list_receipts(con, "strom")) == 1
-        assert database.list_receipts(con, "strom")[0]["amount"] == 1234.56
-        pfad = database.delete_receipt(con, rid)
-        assert pfad == "/x/enbw.pdf"
+        strom = database.list_receipts(con, "strom")[0]
+        assert strom["amount"] == 1234.56
+        assert strom["recorded_by"] == cfg.ZWEITE_PARTEI_NAME
+
+        name, mime, data = database.get_receipt_file(con, rid)
+        assert name == "enbw.pdf" and mime == "application/pdf" and data == b"%PDF-1.4 fake"
+
+        database.delete_receipt(con, rid)
         assert len(database.list_receipts(con)) == 1
     finally:
+        con.close()
+
+
+def test_ablesung_foto_und_erfasser(tmp_path):
+    path = database.build(tmp_path / "test.db", overwrite=True)
+    con = database.connect(path)
+    try:
+        meter_id = database.list_meters(con)[0]["id"]
+        database.add_reading(con, meter_id, "2026-07-01", 100.0,
+                             recorded_by=cfg.ZWEITE_PARTEI_NAME,
+                             photo_filename="z.jpg", photo_mime="image/jpeg",
+                             photo_data=b"\xff\xd8binaer")
+        rows = [r for r in database.list_readings(con, meter_id) if r["date"] == "2026-07-01"]
+        assert len(rows) == 1
+        assert rows[0]["has_photo"] is True
+        assert rows[0]["recorded_by"] == cfg.ZWEITE_PARTEI_NAME
+
+        name, mime, data = database.get_reading_photo(con, rows[0]["id"])
+        assert name == "z.jpg" and mime == "image/jpeg" and data == b"\xff\xd8binaer"
+
+        # Upsert: Wert korrigieren, ohne neues Foto -> Foto bleibt erhalten.
+        database.add_reading(con, meter_id, "2026-07-01", 101.0)
+        rows = [r for r in database.list_readings(con, meter_id) if r["date"] == "2026-07-01"]
+        assert rows[0]["value"] == 101.0
+        assert rows[0]["has_photo"] is True
+    finally:
+        con.close()
+
+
+def _local_postgres_dsn() -> str | None:
+    """DSN einer lokal erreichbaren Postgres-Testinstanz, sonst None.
+
+    Ermöglicht einen echten End-to-End-Test des Postgres-Backends in
+    dieser Entwicklungsumgebung, ohne dass eine Postgres-Instanz für die
+    normale (SQLite-basierte) Test-Suite zwingend vorhanden sein muss.
+    """
+    dsn = os.environ.get("NK_TEST_POSTGRES_DSN",
+                         "postgresql://postgres:testpass@localhost:5432/nk_test")
+    try:
+        import psycopg2
+        c = psycopg2.connect(dsn, connect_timeout=2)
+        c.close()
+        return dsn
+    except Exception:
+        return None
+
+
+_PG_DSN = _local_postgres_dsn()
+
+
+@pytest.mark.skipif(_PG_DSN is None, reason="Keine lokale Postgres-Testinstanz erreichbar")
+def test_postgres_backend_end_to_end():
+    """Prüft das Postgres-Schema und die Blob-Pfade gegen eine echte Instanz."""
+    import psycopg2
+
+    raw = psycopg2.connect(_PG_DSN)
+    con = db_backend.Connection(raw, "postgres")
+    try:
+        con.execute(
+            "DROP TABLE IF EXISTS receipts, meter_readings, meters, tenants,"
+            " costs, payments CASCADE")
+        con.commit()
+
+        database.init_schema(con)
+        database.seed(con)
+
+        anz_meter = con.execute("SELECT COUNT(*) FROM meters").fetchone()[0]
+        assert anz_meter == len(cfg.METERS)
+
+        meter_id = database.list_meters(con)[0]["id"]
+        foto = bytes(range(256)) * 50  # ~12.8 KB Testbild
+        database.add_reading(con, meter_id, "2026-07-01", 123.456,
+                             recorded_by=cfg.NEUER_EIGENTUEMER_NAME,
+                             photo_filename="zaehler.jpg", photo_mime="image/jpeg",
+                             photo_data=foto)
+        rows = [r for r in database.list_readings(con, meter_id) if r["date"] == "2026-07-01"]
+        assert len(rows) == 1 and rows[0]["has_photo"] is True
+        name, mime, data = database.get_reading_photo(con, rows[0]["id"])
+        assert name == "zaehler.jpg" and data == foto
+
+        rid = database.add_receipt(
+            con, "wasser", "rechnung.pdf", b"%PDF-1.4 " + bytes(range(100)),
+            file_mime="application/pdf", supplier="Wasserversorger", amount=99.90,
+            recorded_by=cfg.ZWEITE_PARTEI_NAME)
+        assert isinstance(rid, int) and rid > 0
+        belege = database.list_receipts(con, "wasser")
+        assert len(belege) == 1 and belege[0]["recorded_by"] == cfg.ZWEITE_PARTEI_NAME
+        _n, _m, bdata = database.get_receipt_file(con, rid)
+        assert bdata == b"%PDF-1.4 " + bytes(range(100))
+
+        database.delete_receipt(con, rid)
+        assert database.list_receipts(con, "wasser") == []
+    finally:
+        con.execute(
+            "DROP TABLE IF EXISTS receipts, meter_readings, meters, tenants,"
+            " costs, payments CASCADE")
+        con.commit()
         con.close()
 
 

@@ -6,8 +6,9 @@ Teinacher Str. 4, 75387 Neubulach.
 Beispiele:
     python main.py rechnen          # Ergebnisse in der Konsole
     python main.py pdf              # alle PDFs nach ./output erzeugen
-    python main.py db               # SQLite-Datenbank aufbauen + seeden
-    python main.py alles            # DB + PDFs + Konsolenausgabe
+    python main.py handbuch         # Übergabe-Handbuch (PDF) erzeugen
+    python main.py db               # Datenbank aufbauen + seeden (SQLite oder Postgres)
+    python main.py alles            # DB + PDFs + Handbuch + Konsolenausgabe
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from pathlib import Path
 
 from nk_abrechnung import config as cfg
 from nk_abrechnung import engine as e
-from nk_abrechnung import database, pdf
+from nk_abrechnung import database, handbuch, pdf
 
 OUTPUT = Path(__file__).parent / "output"
 
@@ -51,7 +52,8 @@ def cmd_rechnen(_args) -> None:
 
     es = e.eigentuemer_zwischenstand()
     print("\n" + "-" * 60)
-    print("Eigentümer-intern Thomas → Christine (Zwischenstand)")
+    print(f"Eigentümer-intern {cfg.NEUER_EIGENTUEMER_NAME} ↔ "
+          f"{cfg.ZWEITE_PARTEI_NAME} (Zwischenstand)")
     for bez, betrag in es.positionen:
         print(f"  {bez:<38}{_eur(betrag):>14}")
     print(f"  {'Zwischensaldo':<38}{_eur(es.zwischensaldo):>14}")
@@ -74,12 +76,18 @@ def cmd_pdf(_args) -> None:
         pdf.abrechnung_pdf(ab["LEER"], OUTPUT / "NK_Leerstand_Thomas.pdf",
                            saldo_label="von Thomas zu tragen"),
         pdf.eigentuemer_pdf(e.eigentuemer_zwischenstand(),
-                            OUTPUT / "NK_Christine_Weis_Zwischenstand.pdf"),
+                            OUTPUT / "NK_Eigentuemer_Zwischenstand.pdf"),
         pdf.verbrauchsuebersicht_pdf(OUTPUT / "NK_Verbrauchsuebersicht.pdf"),
     ]
     print("PDFs erzeugt:")
     for p in ergebnisse:
         print(f"  {p}")
+
+
+def cmd_handbuch(_args) -> None:
+    OUTPUT.mkdir(exist_ok=True)
+    path = handbuch.handbuch_pdf(OUTPUT / "Handbuch_Uebergabe.pdf")
+    print(f"Übergabe-Handbuch erzeugt: {path}")
 
 
 def cmd_db(_args) -> None:
@@ -91,6 +99,7 @@ def cmd_db(_args) -> None:
 def cmd_alles(args) -> None:
     cmd_db(args)
     cmd_pdf(args)
+    cmd_handbuch(args)
     cmd_rechnen(args)
 
 
@@ -99,11 +108,12 @@ def main() -> None:
     sub = parser.add_subparsers(dest="cmd")
     sub.add_parser("rechnen", help="Ergebnisse in der Konsole anzeigen")
     sub.add_parser("pdf", help="alle PDF-Abrechnungen erzeugen")
-    sub.add_parser("db", help="SQLite-Datenbank aufbauen und seeden")
-    sub.add_parser("alles", help="DB + PDFs + Konsolenausgabe")
+    sub.add_parser("handbuch", help="Übergabe-Handbuch (PDF) erzeugen")
+    sub.add_parser("db", help="Datenbank aufbauen und seeden (SQLite oder Postgres)")
+    sub.add_parser("alles", help="DB + PDFs + Handbuch + Konsolenausgabe")
     args = parser.parse_args()
 
-    handlers = {"rechnen": cmd_rechnen, "pdf": cmd_pdf,
+    handlers = {"rechnen": cmd_rechnen, "pdf": cmd_pdf, "handbuch": cmd_handbuch,
                 "db": cmd_db, "alles": cmd_alles}
     handlers.get(args.cmd, cmd_rechnen)(args)
 

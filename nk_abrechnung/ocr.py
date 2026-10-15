@@ -1,4 +1,7 @@
-"""Zählerstand-OCR aus Fotos – mit austauschbaren Backends.
+"""Zählerstand- und Rechnungsbetrag-OCR aus Fotos – mit austauschbaren Backends.
+
+Arbeitet direkt mit Bild-Bytes (kein Zwischenspeichern als Datei nötig),
+da Fotos in der App nur im Speicher bzw. direkt in der Datenbank liegen.
 
 Reihenfolge der Erkennung:
 
@@ -15,18 +18,18 @@ dann bestätigt/ergänzt der Nutzer den Wert von Hand.
 from __future__ import annotations
 
 import base64
+import io
 import json
 import os
 import re
 import shutil
 import urllib.request
 from dataclasses import dataclass
-from pathlib import Path
 
 
 @dataclass
 class OcrResult:
-    value: float | None      # erkannter Zählerstand
+    value: float | None      # erkannter Zählerstand bzw. Betrag
     raw_text: str            # Rohausgabe des Backends
     backend: str             # "claude" | "tesseract" | "none"
     note: str = ""
@@ -82,19 +85,18 @@ def parse_number(text: str) -> float | None:
 # Backends
 # ---------------------------------------------------------------------------
 
-def _read_tesseract(image_path: Path) -> OcrResult:
+def _read_tesseract(image_bytes: bytes) -> OcrResult:
     import pytesseract
     from PIL import Image
 
     # Zeichensatz auf Ziffern und Trenner beschränken -> weniger Fehltreffer.
     cfg = "--psm 6 -c tessedit_char_whitelist=0123456789.,"
-    text = pytesseract.image_to_string(Image.open(image_path), config=cfg)
+    text = pytesseract.image_to_string(Image.open(io.BytesIO(image_bytes)), config=cfg)
     return OcrResult(parse_number(text), text.strip(), "tesseract")
 
 
 _CLAUDE_MODEL = "claude-opus-4-8"
 _CLAUDE_URL = "https://api.anthropic.com/v1/messages"
-
 
 _PROMPT_METER = ("Lies den Zählerstand vom Foto ab. Antworte NUR mit der "
                  "Zahl (mit Nachkommastellen, ohne Einheit, ohne Text). "
@@ -106,11 +108,9 @@ _PROMPT_AMOUNT = ("Dies ist eine Rechnung. Nenne den zu zahlenden Gesamtbetrag "
                   "'unbekannt'.")
 
 
-def _read_claude(image_path: Path, prompt: str) -> OcrResult:
+def _read_claude(image_bytes: bytes, prompt: str, media_type: str = "image/jpeg") -> OcrResult:
     key = os.environ["ANTHROPIC_API_KEY"]
-    data = base64.standard_b64encode(Path(image_path).read_bytes()).decode()
-    suffix = Path(image_path).suffix.lower().lstrip(".")
-    media = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix or 'png'}"
+    data = base64.standard_b64encode(image_bytes).decode()
 
     payload = {
         "model": _CLAUDE_MODEL,
@@ -119,7 +119,7 @@ def _read_claude(image_path: Path, prompt: str) -> OcrResult:
             "role": "user",
             "content": [
                 {"type": "image",
-                 "source": {"type": "base64", "media_type": media, "data": data}},
+                 "source": {"type": "base64", "media_type": media_type, "data": data}},
                 {"type": "text", "text": prompt},
             ],
         }],
@@ -135,9 +135,9 @@ def _read_claude(image_path: Path, prompt: str) -> OcrResult:
     return OcrResult(parse_number(text), text, "claude")
 
 
-def _read(image_path: str | Path, prompt: str, prefer: str | None = None) -> OcrResult:
+def _read(image_bytes: bytes, prompt: str, media_type: str = "image/jpeg",
+         prefer: str | None = None) -> OcrResult:
     """Gemeinsamer Erkennungspfad für Zählerstände und Rechnungsbeträge."""
-    path = Path(image_path)
     backends = available_backends()
     if prefer and prefer in backends:
         backends = [prefer]
@@ -145,9 +145,9 @@ def _read(image_path: str | Path, prompt: str, prefer: str | None = None) -> Ocr
     for backend in backends:
         try:
             if backend == "claude":
-                return _read_claude(path, prompt)
+                return _read_claude(image_bytes, prompt, media_type)
             if backend == "tesseract":
-                return _read_tesseract(path)
+                return _read_tesseract(image_bytes)
         except Exception as ex:  # Backend-Fehler -> manuell
             return OcrResult(None, "", backend, note=f"OCR-Fehler: {ex}")
 
@@ -155,11 +155,13 @@ def _read(image_path: str | Path, prompt: str, prefer: str | None = None) -> Ocr
                      note="Kein OCR-Backend verfügbar – bitte Wert manuell eingeben.")
 
 
-def read_meter(image_path: str | Path, prefer: str | None = None) -> OcrResult:
-    """Liest einen Zählerstand aus einem Foto mit dem besten verfügbaren Backend."""
-    return _read(image_path, _PROMPT_METER, prefer)
+def read_meter(image_bytes: bytes, media_type: str = "image/jpeg",
+              prefer: str | None = None) -> OcrResult:
+    """Liest einen Zählerstand aus Bild-Bytes mit dem besten verfügbaren Backend."""
+    return _read(image_bytes, _PROMPT_METER, media_type, prefer)
 
 
-def read_amount(image_path: str | Path, prefer: str | None = None) -> OcrResult:
-    """Liest den Gesamtbetrag einer Rechnung aus einem Foto."""
-    return _read(image_path, _PROMPT_AMOUNT, prefer)
+def read_amount(image_bytes: bytes, media_type: str = "image/jpeg",
+                prefer: str | None = None) -> OcrResult:
+    """Liest den Gesamtbetrag einer Rechnung aus Bild-Bytes."""
+    return _read(image_bytes, _PROMPT_AMOUNT, media_type, prefer)
